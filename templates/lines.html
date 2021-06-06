@@ -1,0 +1,54 @@
+<!doctype html>
+<title>Tables</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<section class="content">
+    <header>
+        <h1 style="text-align:center;">All Lines in Table - {{ tablename }}</h1>
+    </header>
+
+    <table>
+        <thead>
+            <tr>
+                {% for column in columns %}
+                <th style="width: 25%">{{ column }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                {% for item in row %}
+                <td style="width: 25%"> {{ item }}</td>
+                {% endfor %}
+            <tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <form method="post" id="table">
+        <div>
+        <input id = "showallBtn" type="submit" name = "show all" value="show all"> 
+        <input id = "clearBtn" type="submit" name = "clear" value="clear" > 
+        </div>
+    </form>
+
+    <h2 style="text-align: center;">Search</h2>
+    <form method="post" id="search">
+        {% for column in columns %}
+        <label for={{ column }}>{{ column }}</label>
+            <input type="text" name={{ column }} id={{ column }}>
+        {% endfor %}
+        <div>
+        <!-- <input id = "searchBtn" type="submit" name="search" value="search"> -->
+        <input id = "searchBtn" type="submit" name="search" value="search">
+        </div>
+    </form>
+
+    <form method="POST" id="Back">
+        <div>
+            <input id = "backupBtn" type="submit" name="Back" value="Back">
+        </div>
+    </form>
+</section>
