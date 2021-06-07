@@ -8,6 +8,9 @@ from flask import url_for
 from flask import flash
 
 from db import *
+import jinja2
+env = jinja2.Environment()
+env.globals.update(zip=zip)
 
 # 生成一个app
 app = Flask(__name__, instance_relative_config=True)
@@ -101,6 +104,23 @@ def lines():
         elif "Back" in request.form:
             db_close(db)
             return redirect(url_for("table"))
+        elif "update" in request.form.values():
+            db_close(db)
+            for key, value in request.form.items():
+                if value == 'update':
+                    session['search_list'] = key.split("||")
+            return redirect(url_for("update"))
+        elif "delete" in request.form.values():
+            delete_dict = dict()
+            for key, value in request.form.items():
+                if value == 'delete':
+                    [keys, values] = key.split("&&")
+            keys = keys.split("||")
+            values = values.split("||")
+            for idx in range(len(keys)):
+                delete_dict[keys[idx]] = values[idx]
+            columns, rows = table_delete(db, table, delete_dict)
+            return render_template("lines.html", columns = columns, rows = rows, tablename = table)
         else:
             db_close(db)
             return render_template("lines.html", columns = columns, rows = rows, tablename = table)
@@ -108,6 +128,40 @@ def lines():
         db_close(db)
         return render_template("lines.html", columns = columns, rows = rows, tablename = table)
 
+@app.route("/table/lines/update", methods=['GET', 'POST'])
+def update():
+    # 出于简单考虑，每次请求都需要连接数据库，可以尝试使用其它context保存数据库连接
+    if 'username' in session:
+        db = db_login(session['username'], session['password'], session['ipaddr'], session['database'])
+    else:
+        return redirect(url_for('login'))
+
+    if 'table' not in session:
+        return redirect(url_for('table'))
+
+    search_list = session['search_list']
+    table = session['table']
+    columns, rows = table_update(db, table, search_list, None)
+
+    if request.method == 'POST':
+        if "update" in request.form:
+            update_dict = dict()
+            for key, value in request.form.items():
+                if key != "update" and value != '':
+                    update_dict[key] = value
+            columns, rows = table_update(db, table, search_list=search_list, update_dict=update_dict)
+            session['search_list'] = list(rows[0])
+            db_close(db)
+            return render_template("update.html", columns = columns, rows = rows, tablename = table)
+        elif "Back" in request.form:
+            db_close(db)
+            return redirect(url_for("lines"))
+        else:
+            db_close(db)
+            return render_template("update.html", columns = columns, rows = rows, tablename = table)
+    else:
+        db_close(db)
+        return render_template("update.html", columns = columns, rows = rows, tablename = table)
 
 # 测试URL下返回html page
 @app.route("/hello")

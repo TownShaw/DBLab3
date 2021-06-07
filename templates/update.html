@@ -5,7 +5,7 @@
 
 <section class="content">
     <header>
-        <h1 style="text-align:center;">All Lines in Table - {{ tablename }}</h1>
+        <h1 style="text-align:center;">Update Line - {{ tablename }}</h1>
     </header>
 
     <table>
@@ -14,7 +14,6 @@
                 {% for column in columns %}
                 <th style="width: 25%">{{ column }}</th>
                 {% endfor %}
-                <th style="width: 25%">Operation</th>
             </tr>
         </thead>
         <tbody>
@@ -23,27 +22,12 @@
                 {% for item in row %}
                     <td style="width: 25%"> {{ item }}</td>
                 {% endfor %}
-                {% set update_info = row|join('||') %}
-                {% set delete_info = [(columns|join('||')),(row|join('||'))]|join('&&') %}
-                <td style="width: 25%">
-                <form method="POST">
-                    <input type="submit" name={{ update_info }} value="update">
-                    <input type="submit" name={{ delete_info }} value="delete">
-                </form>
-                </td>
             <tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <form method="post" id="table">
-        <div>
-        <input id = "showallBtn" type="submit" name = "show all" value="show all"> 
-        <input id = "clearBtn" type="submit" name = "clear" value="clear" > 
-        </div>
-    </form>
-
-    <h2 style="text-align: center;">Search</h2>
+    <h2 style="text-align: center;">Update</h2>
     <form method="post" id="search">
         {% for column in columns %}
         <label for={{ column }}>{{ column }}</label>
@@ -51,7 +35,7 @@
         {% endfor %}
         <div>
         <!-- <input id = "searchBtn" type="submit" name="search" value="search"> -->
-        <input id = "searchBtn" type="submit" name="search" value="search">
+        <input id = "searchBtn" type="submit" name="update" value="update">
         </div>
     </form>
 
