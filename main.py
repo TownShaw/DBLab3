@@ -6,6 +6,8 @@ from flask import request, make_response
 from flask import render_template
 from flask import url_for
 from flask import flash
+from sqlalchemy import create_engine
+from sqlalchemy.sql.expression import column
 
 from db import *
 import jinja2
@@ -16,8 +18,18 @@ env.globals.update(zip=zip)
 app = Flask(__name__, instance_relative_config=True)
 app.secret_key = 'lab3'
 
+# engine = None
+# connection = None
+databasename = "HW2"
+engine = create_engine('mysql+pymysql://root:200219xiaotong@localhost:3306/{}'.format(databasename), echo=True, pool_recycle=3600)
+connection = engine.connect()
+
 # 对app执行请求页面地址到函数的绑定
-@app.route("/", methods=("GET", "POST"))                # Python 装饰器, 使得 / 和 /login 都重定向到 login.html
+@app.route("/", methods=(["GET"]))    # 主页, 不需要附加任何操作
+@app.route("/home", methods=(["GET"]))
+def home():
+    return render_template("home.html")
+'''
 @app.route("/login", methods=("GET", "POST"))
 def login():
     """Log in a registered user by adding the user id to the session."""
@@ -27,10 +39,14 @@ def login():
         password = request.form["password"]
         ipaddr   = request.form["ipaddr"]
         database = request.form["database"]
+        port = 3306
 
-        db = db_login(username, password, ipaddr, database)
+        global engine
+        engine = create_engine('mysql+pymysql://' + username + ':' + password + '@' + ipaddr + ':' + str(port) + '/' + database, echo=True, pool_recycle=3600)
+        global connection
+        connection = engine.connect()
 
-        if db == None:
+        if engine == None:
             return render_template("login_fail.html")
         else:
             session['username'] = username
@@ -38,110 +54,84 @@ def login():
             session['ipaddr'] = ipaddr
             session['database'] = database
 
-            return redirect(url_for('table'))
+            return redirect(url_for('database'))
     else :
         # 客户端GET 请求login页面时
         return render_template("login.html")
+'''
+@app.route("/clients", methods=['GET', 'POST'])
+def clients():
+    tablename = "SC"
+    columns = table_getcolumns(engine, tablename)
+    table = db_gettable(engine, tablename)
+    stmt = table.select()
+    rows = connection.execute(stmt).fetchall()
 
-# 请求url为host/table的页面返回结果
-@app.route("/table", methods=(["GET", "POST"]))
-def table():
-    # 出于简单考虑，每次请求都需要连接数据库，可以尝试使用其它context保存数据库连接
-    if 'username' in session:
-        db = db_login(session['username'], session['password'],
-                        session['ipaddr'], session['database'])
+    if request.method == 'POST':
+        if "Back" in request.form:
+            return render_template("home.html")
+        elif "search" in request.form:
+            search_dict = dict()
+            for key, value in request.form.items():
+                if key == "select_type":
+                    search_dict[value] = value
+                elif key == "searchConf":
+                    search_dict[next(iter(search_dict))] = value
+            rows = table_search(engine, tablename, search_dict)
+            return render_template("clients.html", columns=columns, rows=rows)
+        elif "clear" in request.form:
+            return render_template("clients.html", columns=columns, rows='')
+        else:
+            rows = table_search(engine, tablename, None)
+            return render_template("clients.html", columns=columns, rows=rows)
     else:
-        return redirect(url_for('login'))
-    
-    tabs = db_showtable(db)
+        return render_template("clients.html", columns=columns, rows=rows)
 
-    db_close(db)
+@app.route("/database", methods=(["GET", "POST"]))
+def database():
+    # tablenames = db_showtable(engine)
+    tablenames = engine.table_names()
+
     if request.method == "POST":
         if 'clear' in request.form:
-            return render_template("table.html", rows = '', dbname=session['database'])         # 调用模板, 随后参数为键值对, 将表示模板中变量对应的具体值.
+            return render_template("database.html", tablenames = '', dbname=databasename)         # 调用模板, 随后参数为键值对, 将表示模板中变量对应的具体值.
         elif 'search' in request.form:
-            return render_template("table.html", rows = tabs, dbname=session['database'])
-        elif 'select' in request.form:
-            # print(type(request.form))
-            session['table'] = request.form['select']
-            return redirect(url_for("lines"))
+            return render_template("database.html", tablenames = tablenames, dbname=databasename)
         else:
             print("No handler, Error!")
-            return render_template("table.html", rows = tabs, dbname=session['database'])
+            return render_template("database.html", tablenames = tablenames, dbname=databasename)
 
     else:
-        return render_template("table.html", rows = tabs, dbname=session['database'])
 
-@app.route("/table/lines", methods=(["GET", "POST"]))
-def lines():
-    # 出于简单考虑，每次请求都需要连接数据库，可以尝试使用其它context保存数据库连接
-    if 'username' in session:
-        db = db_login(session['username'], session['password'], session['ipaddr'], session['database'])
-    else:
-        return redirect(url_for('login'))
+        return render_template("database.html", tablenames = tablenames, dbname=databasename)
 
-    if 'table' not in session:
-        return redirect(url_for('table'))
-    table = session['table']
-    columns, rows = table_showlines(db, table, None)
+@app.route("/table/<tablename>", methods=(["GET", "POST"]))
+def table(tablename):
+    columns, rows = table_search(engine, tablename, None)
     
 
     if request.method == "POST":
         if 'clear' in request.form:
-            db_close(db)
-            return render_template("lines.html", columns = '', rows = '', tablename = table)         # 调用模板, 随后参数为键值对, 将表示模板中变量对应的具体值.
+            return render_template("table.html", columns = '', rows = '', tablename = tablename)         # 调用模板, 随后参数为键值对, 将表示模板中变量对应的具体值.
         elif 'show all' in request.form:
-            db_close(db)
-            return render_template("lines.html", columns = columns, rows = rows, tablename = table)
+            return render_template("table.html", columns = columns, rows = rows, tablename = tablename)
         elif "search" in request.form:
-            search_conf = dict()
+            search_dict = dict()
             for key, value in request.form.items():
                 if key != "search" and value != '':
-                    search_conf[key] = value
-            columns, rows = table_showlines(db, table, search_conf)
-            db_close(db)
-            return render_template("lines.html", columns = columns, rows = rows, tablename = table)
+                    search_dict[key] = value
+            columns, rows = table_search(engine, tablename, search_dict)
+            return render_template("table.html", columns = columns, rows = rows, tablename = tablename)
         elif "Back" in request.form:
-            db_close(db)
-            return redirect(url_for("table"))
-        elif "update" in request.form.values():
-            db_close(db)
-            for key, value in request.form.items():
-                if value == 'update':
-                    session['search_list'] = key.split("||")
-            return redirect(url_for("update"))
-        elif "delete" in request.form.values():
-            delete_dict = dict()
-            for key, value in request.form.items():
-                if value == 'delete':
-                    [keys, values] = key.split("&&")
-            keys = keys.split("||")
-            values = values.split("||")
-            for idx in range(len(keys)):
-                delete_dict[keys[idx]] = values[idx]
-            columns, rows = table_delete(db, table, delete_dict)
-            return render_template("lines.html", columns = columns, rows = rows, tablename = table)
+            return redirect(url_for("database"))
         else:
-            db_close(db)
-            return render_template("lines.html", columns = columns, rows = rows, tablename = table)
+            return render_template("table.html", columns = columns, rows = rows, tablename = tablename)
     else:
-        db_close(db)
-        return render_template("lines.html", columns = columns, rows = rows, tablename = table)
+        return render_template("table.html", columns = columns, rows = rows, tablename = tablename)
 
-@app.route("/table/lines/update", methods=['GET', 'POST'])
-def update():
-    # 出于简单考虑，每次请求都需要连接数据库，可以尝试使用其它context保存数据库连接
-    if 'username' in session:
-        db = db_login(session['username'], session['password'], session['ipaddr'], session['database'])
-    else:
-        return redirect(url_for('login'))
-
-    if 'table' not in session:
-        return redirect(url_for('table'))
-
-    search_list = session['search_list']
-    table = session['table']
-    columns, rows = table_update(db, table, search_list, None)
+@app.route("/update/<tablename>", methods=['GET', 'POST'])
+def update(tablename):
+    columns, rows = table_update(engine, tablename, None)
 
     if request.method == 'POST':
         if "update" in request.form:
@@ -149,24 +139,35 @@ def update():
             for key, value in request.form.items():
                 if key != "update" and value != '':
                     update_dict[key] = value
-            columns, rows = table_update(db, table, search_list=search_list, update_dict=update_dict)
-            session['search_list'] = list(rows[0])
-            db_close(db)
+            columns, rows = table_update(engine, connection, table, update_dict=update_dict)
             return render_template("update.html", columns = columns, rows = rows, tablename = table)
         elif "Back" in request.form:
-            db_close(db)
             return redirect(url_for("lines"))
         else:
-            db_close(db)
             return render_template("update.html", columns = columns, rows = rows, tablename = table)
     else:
-        db_close(db)
         return render_template("update.html", columns = columns, rows = rows, tablename = table)
 
 # 测试URL下返回html page
-@app.route("/hello")
-def hello():
-    return "hello world!"
+@app.route("/insert/<tablename>", methods=['GET', 'POST'])
+def insert(tablename):
+    columns = table_getcolumns(engine, tablename)
+
+    if request.method == 'POST':
+        if "insert" in request.form:
+            insert_dict = dict()
+            for key, value in request.form.items():
+                if key != "insert":
+                    insert_dict[key] = value
+            table_insert(engine, tablename, insert_dict)
+            return render_template("insert.html", tablename=tablename, columns=columns)
+        elif "Back" in request.form:
+            tablenames = engine.table_names()
+            return render_template("database.html", tablenames=tablenames, databasename=databasename)
+        else:
+            return render_template("insert.html", tablename=tablename, columns=columns)
+    else:
+        return render_template("insert.html", tablename=tablename, columns=columns)
 
 #返回不存在页面的处理
 @app.errorhandler(404)

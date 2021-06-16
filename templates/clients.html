@@ -5,8 +5,20 @@
 
 <section class="content">
     <header>
-        <h1 style="text-align:center;">All Lines in Table - {{ tablename }}</h1>
+        <h1 style="text-align:center;">Clients</h1>
     </header>
+
+    <span>搜索条件:</span>
+    <form method="POST" name="post-search">
+        <select class="form-control" id="selectType" name="select_type">
+            {% for column in columns %}
+            <option value="{{column}}">{{column}}</option>
+            {% endfor %}
+        </select>
+        </br>
+        <input type="text" name="searchConf" id="searchConf">
+        <button type="submit" class="GeneralBtn" name="search">Search</button>
+    </form>
 
     <table>
         <thead>
@@ -23,12 +35,10 @@
                 {% for item in row %}
                     <td style="width: 25%"> {{ item }}</td>
                 {% endfor %}
-                {% set update_info = row|join('||') %}
-                {% set delete_info = [(columns|join('||')),(row|join('||'))]|join('&&') %}
                 <td style="width: 25%">
                 <form method="POST">
-                    <input type="submit" name={{ update_info }} value="update">
-                    <input type="submit" name={{ delete_info }} value="delete">
+                    <input type="submit" name="update" value="update">
+                    <input type="submit" name="delete" value="delete">
                 </form>
                 </td>
             <tr>
@@ -40,18 +50,6 @@
         <div>
         <input id = "showallBtn" type="submit" name = "show all" value="show all"> 
         <input id = "clearBtn" type="submit" name = "clear" value="clear" > 
-        </div>
-    </form>
-
-    <h2 style="text-align: center;">Search</h2>
-    <form method="post" id="search">
-        {% for column in columns %}
-        <label for={{ column }}>{{ column }}</label>
-            <input type="text" name={{ column }} id={{ column }}>
-        {% endfor %}
-        <div>
-        <!-- <input id = "searchBtn" type="submit" name="search" value="search"> -->
-        <input id = "searchBtn" type="submit" name="search" value="search">
         </div>
     </form>
 

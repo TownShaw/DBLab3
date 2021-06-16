@@ -1,6 +1,13 @@
-import MySQLdb
-from MySQLdb._exceptions import OperationalError, ProgrammingError
-
+# import MySQLdb
+from flask.globals import session
+from sqlalchemy import Table, Column, String, Integer, MetaData, func
+from sqlalchemy.orm.session import Session
+from sqlalchemy.sql import select, insert, delete, update
+from sqlalchemy.engine import reflection
+from sqlalchemy.orm import sessionmaker, relationship, backref
+from sqlalchemy.ext.declarative import declarative_base
+# from MySQLdb._exceptions import OperationalError, ProgrammingError
+'''
 def db_login(user, passwd, server_addr, dbname):
     try:
         db = MySQLdb.connect(server_addr, user, passwd, dbname, charset = "utf8")
@@ -8,8 +15,7 @@ def db_login(user, passwd, server_addr, dbname):
         db = None
 
     return db
-
-def db_showtable(db):
+def db_showtable(engine):
     cursor = db.cursor()
 
     cursor.execute("show tables")
@@ -26,49 +32,66 @@ def db_showtable(db):
     cursor.close()
 
     return res
+    Base = declarative_base()
+    Base.metadata.reflect(engine)
+    tables = Base.metadata.tables
+    tables_name = []
+    for table in tables:
+        tables_name.append(table)
+    return tables_name
+'''
+def db_getsession(engine):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    return session
 
-def table_showlines(db, table, search_conf):     # 显示 db table 的所有表项
-    cursor = db.cursor()
+def db_getconnection(engine):
+    connection = engine.connect()
+    return connection
 
-    cursor.execute("describe " + table)
-    table_head = cursor.fetchall()
-    columns = []
-    for i in range(len(table_head)):
-        columns.append(table_head[i][0])
-    if search_conf == None or search_conf == {}:     # if search_conf 为空
-        try:
-            cursor.execute("SELECT * FROM " + table)
-        except OperationalError:
-            print("Not Such Table, Error!")
-            return [], []
-        result = cursor.fetchall()
+def db_gettable(engine, tablename):
+    metadata = MetaData(engine)
+    table = Table(tablename, metadata, autoload=True)
+    return table
+
+def table_getcolumns(engine, tablename):
+    insp = reflection.Inspector.from_engine(engine)
+    columns = insp.get_columns(tablename)    #这里是写的表名
+    columns = [column['name'] for column in columns]
+    return columns
+
+
+def table_search(engine, tablename, search_dict):     # 显示 db table 中的表项
+    connection = db_getconnection(engine)
+    table = db_gettable(engine, tablename)
+    if search_dict == None or search_dict == {}:     # if search_conf 为空
+        stmt = table.select()
+        rows = connection.execute(stmt).fetchall()
     else:
+        key = next(iter(search_dict))
+        value = next(iter(search_dict.values()))
+        # table.select().where(table.c[search_dict])
+        stmt = table.select().where(table.c[key].like("%{}%".format(value)))
         try:
-            WHERE_Clause = ''
-            for key, value in search_conf.items():
-                WHERE_Clause = WHERE_Clause + key + value + " AND "
-            WHERE_Clause = WHERE_Clause[:-5]            # 去掉最后的 and
-            cursor.execute("SELECT * FROM " + table + " WHERE " + WHERE_Clause)
-        except OperationalError or ProgrammingError:
+            rows = connection.execute(stmt).fetchall()
+        except:
             print("Search Clause Error!")
             return [], []
-        result = cursor.fetchall()
+    return rows
 
-    cursor.close()
 
-    return columns, result
+def table_insert(engine, tablename, insert_dict):
+    connection = db_getconnection(engine)
+    table = db_gettable(engine, tablename)
+    stmt = table.insert().values(**insert_dict)
+    print(str(stmt))
+    connection.execute(stmt)
 
-def table_insert(db, table, insert_list):
-    # TODO
-    pass
-
-def table_update(db, table, search_list, update_dict):
-    cursor = db.cursor()
-
-    cursor.execute("describe " + table)
-    table_head = cursor.fetchall()
+def table_update(engine, connection, tablename, update_dict):
+    rp = connection.execute("describe " + tablename)
+    table_head = rp.fetchall()
     columns = []
-    result = []
+    results = []
     search_dict = dict()
     for i in range(len(table_head)):
         columns.append(table_head[i][0])
@@ -78,8 +101,8 @@ def table_update(db, table, search_list, update_dict):
         for key, value in search_dict.items():
             WHERE_Clause = WHERE_Clause + str(key) + "='" + value + "' AND "
         WHERE_Clause = WHERE_Clause[:-5]            # 去掉最后的 and
-        cursor.execute("SELECT * FROM " + table + " WHERE " + WHERE_Clause)
-        result = cursor.fetchall()
+        rp = connection.execute("SELECT * FROM " + tablename + " WHERE " + WHERE_Clause)
+        results = rp.fetchall()
     else:
         WHERE_Clause = ''
         for key, value in search_dict.items():
@@ -90,24 +113,20 @@ def table_update(db, table, search_list, update_dict):
             UPDATE_Clause = UPDATE_Clause + key + "='" + value + "', "
         UPDATE_Clause = UPDATE_Clause[:-2]            # 去掉最后的 and
         try:
-            cursor.execute("UPDATE " + table + " SET " + UPDATE_Clause + " WHERE " + WHERE_Clause)
-            db.commit()
+            rp = connection.execute("UPDATE " + tablename + " SET " + UPDATE_Clause + " WHERE " + WHERE_Clause)
             for key, value in update_dict.items():
                 search_dict[key] = str(value)
             WHERE_Clause = ''
             for key, value in search_dict.items():
                 WHERE_Clause = WHERE_Clause + key + "='" + value + "' AND "
             WHERE_Clause = WHERE_Clause[:-5]            # 去掉最后的 and
-            cursor.execute("SELECT * FROM " + table + " WHERE " + WHERE_Clause)
-        except OperationalError or ProgrammingError:
-            print("Update Clause Error!")
-            db.rollback()
+            rp = connection.execute("SELECT * FROM " + tablename + " WHERE " + WHERE_Clause)
+            results = rp.fetchall()
+        except:
             return [], []
-        result = cursor.fetchall()
 # UPDATE Course SET cno='000011', type='0' WHERE cno='000001' AND cname='大学生心理学' AND type='1' AND credit='3.0'
-    cursor.close()
 
-    return columns, result
+    return columns, results
 
 def table_delete(db, table, delete_dict):
     cursor = db.cursor()
@@ -141,13 +160,13 @@ def table_delete(db, table, delete_dict):
 
     return columns, result
 
-def db_close(db):
-    if db is not None:
-        db.close()
+# def db_close(db):
+    # if db is not None:
+        # db.close()
 
-if __name__ == "__main__":
-    db = db_login("lyp1234", "1234", "127.0.0.1", "test")
+# if __name__ == "__main__":
+    # db = db_login("lyp1234", "1234", "127.0.0.1", "test")
 
-    tabs = db_showtable(db)
+    # tabs = db_showtable(db)
     
-    db_close(db)
+    # db_close(db)

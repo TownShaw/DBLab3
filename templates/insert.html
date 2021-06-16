@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Tables</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<section class="content">
+    <header>
+        <h1 style="text-align:center;">Insert into Table - {{ tablename }}</h1>
+    </header>
+
+    <h2 style="text-align: center;">Insert</h2>
+    <form method="post" id="search">
+        {% for column in columns %}
+        <label for={{ column }}>{{ column }}</label>
+            <input type="text" name={{ column }} id={{ column }}>
+        {% endfor %}
+        <div>
+        <!-- <input id = "searchBtn" type="submit" name="search" value="search"> -->
+        <input id = "searchBtn" type="submit" name="insert" value="insert">
+        </div>
+    </form>
+
+    <form method="POST" id="Back">
+        <div>
+            <input id = "backupBtn" type="submit" name="Back" value="Back">
+        </div>
+    </form>
+</section>

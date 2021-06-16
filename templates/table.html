@@ -5,36 +5,59 @@
 
 <section class="content">
     <header>
-        <h1 style="text-align:center;">All Tables in Database - {{ dbname }}</h1>
+        <h1 style="text-align:center;">All Lines in Table - {{ tablename }}</h1>
     </header>
 
     <table>
         <thead>
             <tr>
-                <th style="width: 50%"> Table Name </th>
-                <th style="width: 50%"> Row Count</th>
+                {% for column in columns %}
+                <th style="width: 25%">{{ column }}</th>
+                {% endfor %}
+                <th style="width: 25%">Operation</th>
             </tr>
         </thead>
         <tbody>
             {% for row in rows %}
             <tr>
-                <!-- <td style="width: 50%">{{ row[0] }}</td> -->
+                {% for item in row %}
+                    <td style="width: 25%"> {{ item }}</td>
+                {% endfor %}
+                {% set update_info = row|join('||') %}
+                {% set delete_info = [(columns|join('||')),(row|join('||'))]|join('&&') %}
+                <td style="width: 25%">
                 <form method="POST">
-                <td style="width: 50%"><button type="submit" name="select" value= {{ row[0] }}>{{ row[0] }}</button></td>
+                    <input type="submit" name={{ update_info }} value="update">
+                    <input type="submit" name={{ delete_info }} value="delete">
                 </form>
-                <td style="width: 50%"> {{ row[1] }}</td>
-                <!-- <form method="POST"> -->
-                <!-- <td style="width: 5%" ><input id = "selectBtn" type="submit" name = "select" value= {{row[0]}}></td> -->
-                <!-- </form> -->
+                </td>
             <tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <form method="post" id="table"> 
+    <form method="post" id="table">
         <div>
-            <input id = "showallBtn" type="submit" name = "search" value="search">
-            <input id = "clearBtn" type="submit" name = "clear" value="clear">
+        <input id = "showallBtn" type="submit" name = "show all" value="show all"> 
+        <input id = "clearBtn" type="submit" name = "clear" value="clear" > 
+        </div>
+    </form>
+
+    <h2 style="text-align: center;">Search</h2>
+    <form method="post" id="search">
+        {% for column in columns %}
+        <label for={{ column }}>{{ column }}</label>
+            <input type="text" name={{ column }} id={{ column }}>
+        {% endfor %}
+        <div>
+        <!-- <input id = "searchBtn" type="submit" name="search" value="search"> -->
+        <input id = "searchBtn" type="submit" name="search" value="search">
+        </div>
+    </form>
+
+    <form method="POST" id="Back">
+        <div>
+            <input id = "backupBtn" type="submit" name="Back" value="Back">
         </div>
     </form>
 </section>

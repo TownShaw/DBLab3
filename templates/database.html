@@ -1,0 +1,40 @@
+<!doctype html>
+<title>Tables</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<section class="content">
+    <header>
+        <h1 style="text-align:center;">All Tables in Database - {{ dbname }}</h1>
+    </header>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 34%"> Table Name </th>
+                <th style="width: 33%"> Modify Table </th>
+                <th style="width: 33%"> Insert Table </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tablename in tablenames %}
+            <tr>
+                <!-- <td style="width: 50%">{{ tablename }}</td> -->
+                <td style="width: 34%">{{ tablename }}</td>
+                <td style="width: 33%"><a href="/table/{{tablename}}">modify</a></td>
+                <td style="width: 33%"><a href="/insert/{{tablename}}">insert</a></td>
+                <!-- <form method="POST"> -->
+                <!-- <td style="width: 5%" ><input id = "selectBtn" type="submit" name = "select" value= {{tablename}}></td> -->
+                <!-- </form> -->
+            <tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <form method="post" id="table"> 
+        <div>
+            <input id = "showallBtn" type="submit" name = "search" value="search">
+            <input id = "clearBtn" type="submit" name = "clear" value="clear">
+        </div>
+    </form>
+</section>

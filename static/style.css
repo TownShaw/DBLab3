@@ -210,3 +210,11 @@ input[type=submit] {
   /* margin-left: 30%; */
   float:right;
  }
+#GeneralBtn {
+  width: 20%;
+  height: 30px;
+  /* text-align: center; */
+  margin-top: 20px;
+  /* margin-left: 30%; */
+  float:right;
+}
