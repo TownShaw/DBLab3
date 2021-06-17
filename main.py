@@ -20,7 +20,7 @@ app.secret_key = 'lab3'
 
 # engine = None
 # connection = None
-databasename = "HW2"
+databasename = "BankSystem"
 engine = create_engine('mysql+pymysql://root:200219xiaotong@localhost:3306/{}'.format(databasename), echo=True, pool_recycle=3600)
 connection = engine.connect()
 
@@ -61,7 +61,7 @@ def login():
 '''
 @app.route("/clients", methods=['GET', 'POST'])
 def clients():
-    tablename = "SC"
+    tablename = "Clients"
     columns = table_getcolumns(engine, tablename)
     table = db_gettable(engine, tablename)
     stmt = table.select()
@@ -79,6 +79,18 @@ def clients():
                     search_dict[next(iter(search_dict))] = value
             rows = table_search(engine, tablename, search_dict)
             return render_template("clients.html", columns=columns, rows=rows)
+        elif "update" in request.form:
+            keys, values = request.form['update'].split("&&")
+            keys = keys.split("||")
+            values = values.split("||")
+            idx = 0
+            global client_id
+            for idx in range(len(keys)):
+                if keys[idx] == 'Client_ID':
+                    client_id = values[idx]
+            return redirect(url_for("update_client"))
+        elif "insert" in request.form:
+            return redirect(url_for("insert_client"))
         elif "clear" in request.form:
             return render_template("clients.html", columns=columns, rows='')
         else:
@@ -86,6 +98,51 @@ def clients():
             return render_template("clients.html", columns=columns, rows=rows)
     else:
         return render_template("clients.html", columns=columns, rows=rows)
+
+@app.route("/clients/update", methods=['GET', 'POST'])
+def update_client():
+    tablename = "Clients"
+    columns = table_getcolumns(engine, tablename)
+    update_columns = columns[:]
+    update_columns.remove("Client_ID")
+    table = db_gettable(engine, tablename)
+    stmt = table.select().where(table.c['Client_ID'] == client_id)
+    rows = connection.execute(stmt).fetchall()
+
+    if request.method == 'POST':
+        if "update" in request.form:
+            update_dict = dict()
+            for key, value in request.form.items():
+                if key != "update" and key != "Client_ID" and value != '':
+                    update_dict[key] = value
+            rows = table_update(engine, tablename, {"Client_ID": client_id}, update_dict)
+            return render_template("update.html", tablename=tablename, rows=rows, columns=columns, update_columns=update_columns)
+        elif "Back" in request.form:
+            return redirect(url_for("clients"))
+        else:
+            return render_template("update.html", tablename=tablename, rows=rows, columns=columns, update_columns=update_columns)
+    else:
+        return render_template("update.html", tablename=tablename, rows=rows, columns=columns, update_columns=update_columns)
+
+@app.route("/clients/insert", methods=['GET', 'POST'])
+def insert_client():
+    tablename = "Clients"
+    columns = table_getcolumns(engine, tablename)
+
+    if request.method == 'POST':
+        if "insert" in request.form:
+            insert_dict = dict()
+            for key, value in request.form.items():
+                if key != "insert":
+                    insert_dict[key] = value
+            table_insert(engine, tablename, insert_dict)
+            return render_template("insert.html", tablename=tablename, columns=columns)
+        elif "Back" in request.form:
+            return redirect(url_for("clients"))
+        else:
+            return render_template("insert.html", tablename=tablename, columns=columns)
+    else:
+        return render_template("insert.html", tablename=tablename, columns=columns)
 
 @app.route("/database", methods=(["GET", "POST"]))
 def database():
@@ -108,7 +165,6 @@ def database():
 @app.route("/table/<tablename>", methods=(["GET", "POST"]))
 def table(tablename):
     columns, rows = table_search(engine, tablename, None)
-    
 
     if request.method == "POST":
         if 'clear' in request.form:

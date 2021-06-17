@@ -37,7 +37,8 @@
                 {% endfor %}
                 <td style="width: 25%">
                 <form method="POST">
-                    <input type="submit" name="update" value="update">
+                    {% set row_info = [(columns|join('||')),(row|join('||'))]|join('&&') %}
+                    <button type="submit" name="update" value="{{row_info}}">Update</button>
                     <input type="submit" name="delete" value="delete">
                 </form>
                 </td>
@@ -52,7 +53,9 @@
         <input id = "clearBtn" type="submit" name = "clear" value="clear" > 
         </div>
     </form>
-
+    <form method="POST" name="post-insert">
+        <input id="insert_client" type="submit" name="insert" value="insert">
+    </form>
     <form method="POST" id="Back">
         <div>
             <input id = "backupBtn" type="submit" name="Back" value="Back">

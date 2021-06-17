@@ -29,7 +29,7 @@
 
     <h2 style="text-align: center;">Update</h2>
     <form method="post" id="search">
-        {% for column in columns %}
+        {% for column in update_columns %}
         <label for={{ column }}>{{ column }}</label>
             <input type="text" name={{ column }} id={{ column }}>
         {% endfor %}

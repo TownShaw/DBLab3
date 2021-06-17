@@ -6,6 +6,7 @@ from sqlalchemy.sql import select, insert, delete, update
 from sqlalchemy.engine import reflection
 from sqlalchemy.orm import sessionmaker, relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql.coercions import expect
 # from MySQLdb._exceptions import OperationalError, ProgrammingError
 '''
 def db_login(user, passwd, server_addr, dbname):
@@ -84,49 +85,25 @@ def table_insert(engine, tablename, insert_dict):
     connection = db_getconnection(engine)
     table = db_gettable(engine, tablename)
     stmt = table.insert().values(**insert_dict)
-    print(str(stmt))
+    # print(str(stmt))
+    # try:
     connection.execute(stmt)
+    # except:
+        # pass
+    # connection.execute(stmt)
 
-def table_update(engine, connection, tablename, update_dict):
-    rp = connection.execute("describe " + tablename)
-    table_head = rp.fetchall()
-    columns = []
-    results = []
-    search_dict = dict()
-    for i in range(len(table_head)):
-        columns.append(table_head[i][0])
-        search_dict[columns[i]] = str(search_list[i])
-    if update_dict == None or update_dict == {}:     # if search_conf 为空
-        WHERE_Clause = ''
-        for key, value in search_dict.items():
-            WHERE_Clause = WHERE_Clause + str(key) + "='" + value + "' AND "
-        WHERE_Clause = WHERE_Clause[:-5]            # 去掉最后的 and
-        rp = connection.execute("SELECT * FROM " + tablename + " WHERE " + WHERE_Clause)
-        results = rp.fetchall()
-    else:
-        WHERE_Clause = ''
-        for key, value in search_dict.items():
-            WHERE_Clause = WHERE_Clause + key + "='" + value + "' AND "
-        WHERE_Clause = WHERE_Clause[:-5]            # 去掉最后的 and
-        UPDATE_Clause = ''
-        for key, value in update_dict.items():
-            UPDATE_Clause = UPDATE_Clause + key + "='" + value + "', "
-        UPDATE_Clause = UPDATE_Clause[:-2]            # 去掉最后的 and
-        try:
-            rp = connection.execute("UPDATE " + tablename + " SET " + UPDATE_Clause + " WHERE " + WHERE_Clause)
-            for key, value in update_dict.items():
-                search_dict[key] = str(value)
-            WHERE_Clause = ''
-            for key, value in search_dict.items():
-                WHERE_Clause = WHERE_Clause + key + "='" + value + "' AND "
-            WHERE_Clause = WHERE_Clause[:-5]            # 去掉最后的 and
-            rp = connection.execute("SELECT * FROM " + tablename + " WHERE " + WHERE_Clause)
-            results = rp.fetchall()
-        except:
-            return [], []
-# UPDATE Course SET cno='000011', type='0' WHERE cno='000001' AND cname='大学生心理学' AND type='1' AND credit='3.0'
-
-    return columns, results
+def table_update(engine, tablename, search_dict, update_dict):
+    connection = db_getconnection(engine)
+    table = db_gettable(engine, tablename)
+    stmt = table.update().where(table.c['Client_ID'] == search_dict['Client_ID']).values(**update_dict)
+    print(str(stmt))
+    try:
+        connection.execute(stmt)
+    except:
+        pass
+    stmt = table.select().where(table.c['Client_ID'] == search_dict['Client_ID'])
+    rows = connection.execute(stmt)
+    return rows
 
 def table_delete(db, table, delete_dict):
     cursor = db.cursor()
