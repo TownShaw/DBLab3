@@ -397,7 +397,17 @@ def insert_loans():
             for key, value in request.form.items():
                 if key != "insert":
                     insert_dict[key] = value
-            table_insert(engine, tablename, insert_dict)
+                if key == "Bank_Name":
+                    bank = value
+                if key == "Loan_Amount":
+                    amount = float(value)
+            connection = db_getconnection(engine)
+            bank_table = db_gettable(engine, "Branch_Bank")
+            stmt = select([bank_table.c["Bank_Name"], bank_table.c["Asset"]]).where(bank_table.c["Bank_Name"] == bank)
+            result = connection.execute(stmt).fetchone()
+            asset = float(result[1])
+            if asset >= amount:
+                table_insert(engine, tablename, insert_dict)
             return render_template("insert.html", tablename=tablename, columns=columns)
         elif "Back" in request.form:
             return redirect(url_for("loans"))
@@ -572,7 +582,7 @@ def insert(tablename):
 
 #返回不存在页面的处理
 @app.errorhandler(404)
-def not_found():
+def not_found(e):
     return render_template("404.html")
 
 if __name__ == "__main__":

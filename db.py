@@ -213,10 +213,13 @@ def loans_delete(engine, loan_id, installment):
         connection = db_getconnection(engine)
         loans_table = db_gettable(engine, loans_tablename)
         payment_table = db_gettable(engine, payment_tablename)
-        stmt = payment_table.delete().where(payment_table.c["Loan_ID"] == loan_id)
-        connection.execute(stmt)
-        stmt = loans_table.delete().where(loans_table.c["Loan_ID"] == loan_id)
-        connection.execute(stmt)
+        try:
+            stmt = payment_table.delete().where(payment_table.c["Loan_ID"] == loan_id)
+            connection.execute(stmt)
+            stmt = loans_table.delete().where(loans_table.c["Loan_ID"] == loan_id)
+            connection.execute(stmt)
+        except:
+            pass
 
 def checking_account_statistics(engine, time):
     connection = db_getconnection(engine)
