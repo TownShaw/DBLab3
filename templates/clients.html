@@ -39,7 +39,7 @@
                 <form method="POST">
                     {% set row_info = [(columns|join('||')),(row|join('||'))]|join('&&') %}
                     <button type="submit" name="update" value="{{row_info}}">Update</button>
-                    <input type="submit" name="delete" value="delete">
+                    <button type="submit" name="delete" value="{{row_info}}">Delete</button>
                 </form>
                 </td>
             <tr>
@@ -55,6 +55,8 @@
     </form>
     <form method="POST" name="post-insert">
         <input id="insert_client" type="submit" name="insert" value="insert">
+        <input id="add_accounts" type="submit" name="add_accounts" value="关联账户">
+        <input id="add_loans" type="submit" name="add_loans" value="关联贷款">
     </form>
     <form method="POST" id="Back">
         <div>

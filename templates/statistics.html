@@ -1,0 +1,63 @@
+<!doctype html>
+<title>Tables</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<section class="content">
+    <header>
+        <h1 style="text-align:center;">Statistics</h1>
+    </header>
+
+    <span>搜索截至时间:</span>
+    <form method="POST" name="post-search">
+        <input type="text" name="datetime" id="searchConf">
+        <button type="submit" class="GeneralBtn" name="search">Search</button>
+    </form>
+
+    <h2>Checking Account</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 34%"> Bank Name </th>
+                <th style="width: 33%"> Asset </th>
+                <th style="width: 33%"> Number of Clients </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in Checking_Account_Data %}
+            <tr>
+                {% for item in line %}
+                <td style="width: 33%">{{item}}</td>
+                {% endfor %}
+            <tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Saving Account</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 34%"> Bank Name </th>
+                <th style="width: 33%"> Asset </th>
+                <th style="width: 33%"> Number of Clients </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in Saving_Account_Data %}
+            <tr>
+                {% for item in line %}
+                <td style="width: 33%">{{item}}</td>
+                {% endfor %}
+            <tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <form method="post" id="table"> 
+        <div>
+            <input id = "showallBtn" type="submit" name = "search" value="search">
+            <input id = "clearBtn" type="submit" name = "clear" value="clear">
+        </div>
+    </form>
+</section>

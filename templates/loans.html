@@ -40,7 +40,7 @@
                 <form method="POST">
                     {% set row_info = [(columns|join('||')),(row|join('||'))]|join('&&') %}
                     <button type="submit" name="view" value="{{row_info}}">View Installments</button>
-                    <input type="submit" name="delete" value="delete">
+                    <button type="submit" name="delete" value="{{row_info}}">Delete</button>
                 </form>
                 </td>
             <tr>
