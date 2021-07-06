@@ -1,0 +1,65 @@
+<!doctype html>
+<title>Tables</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<section class="content">
+    <header>
+        <h1 style="text-align:center;">Loans</h1>
+    </header>
+
+    <span>搜索条件:</span>
+    <form method="POST" name="post-search">
+        <select class="form-control" id="selectType" name="select_type">
+            {% for column in columns %}
+            <option value="{{column}}">{{column}}</option>
+            {% endfor %}
+        </select>
+        </br>
+        <input type="text" name="searchConf" id="searchConf">
+        <button type="submit" class="GeneralBtn" name="search">Search</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                {% for column in columns %}
+                <th style="width: 20%">{{ column }}</th>
+                {% endfor %}
+                <th style="width: 20%">Status</th>
+                <th style="width: 20%">Operation</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                {% for item in row %}
+                    <td style="width: 20%"> {{ item }}</td>
+                {% endfor %}
+                <td style="width: 20%">
+                <form method="POST">
+                    {% set row_info = [(columns|join('||')),(row|join('||'))]|join('&&') %}
+                    <button type="submit" name="view" value="{{row_info}}">View Installments</button>
+                    <input type="submit" name="delete" value="delete">
+                </form>
+                </td>
+            <tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <form method="post" id="table">
+        <div>
+        <input id = "showallBtn" type="submit" name = "show all" value="show all"> 
+        <input id = "clearBtn" type="submit" name = "clear" value="clear" > 
+        </div>
+    </form>
+    <form method="POST" name="post-insert">
+        <input id="insert_client" type="submit" name="insert" value="insert">
+    </form>
+    <form method="POST" id="Back">
+        <div>
+            <input id = "backupBtn" type="submit" name="Back" value="Back">
+        </div>
+    </form>
+</section>

@@ -1,6 +1,6 @@
 # import MySQLdb
 from flask.globals import session
-from sqlalchemy import Table, Column, String, Integer, MetaData, func
+from sqlalchemy import Table, Column, String, Integer, MetaData, func, and_, or_
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import select, insert, delete, update
 from sqlalchemy.engine import reflection
@@ -84,6 +84,9 @@ def table_search(engine, tablename, search_dict):     # 显示 db table 中的�
 def table_insert(engine, tablename, insert_dict):
     connection = db_getconnection(engine)
     table = db_gettable(engine, tablename)
+    for key, value in insert_dict.items():
+        if value == '':
+            insert_dict[key] = None
     stmt = table.insert().values(**insert_dict)
     # print(str(stmt))
     # try:
@@ -95,13 +98,18 @@ def table_insert(engine, tablename, insert_dict):
 def table_update(engine, tablename, search_dict, update_dict):
     connection = db_getconnection(engine)
     table = db_gettable(engine, tablename)
-    stmt = table.update().where(table.c['Client_ID'] == search_dict['Client_ID']).values(**update_dict)
+    clause = []
+    for key, value in search_dict.items():
+        clause.append(table.c[key] == value)
+    # stmt = table.update().where(table.c['Client_ID'] == search_dict['Client_ID']).values(**update_dict)
+    stmt = table.update().where(and_(*clause)).values(**update_dict)
     print(str(stmt))
     try:
         connection.execute(stmt)
     except:
         pass
-    stmt = table.select().where(table.c['Client_ID'] == search_dict['Client_ID'])
+    # stmt = table.select().where(table.c['Client_ID'] == search_dict['Client_ID'])
+    stmt = table.select().where(and_(*clause))
     rows = connection.execute(stmt)
     return rows
 
@@ -136,6 +144,25 @@ def table_delete(db, table, delete_dict):
         result = cursor.fetchall()
 
     return columns, result
+
+def get_loan_status(engine, loan_id, installment):
+    tablename = "Partial_Payment"
+    connection = db_getconnection(engine)
+    table = db_gettable(engine, tablename)
+    stmt = table.select().where(table.c["Loan_ID"] == loan_id)
+    rows = connection.execute(stmt).fetchall()
+    if len(rows) == installment:
+        status = "已全部发放"
+    elif len(rows) == 0:
+        status = "未开始发放"
+    elif len(rows) < installment:
+        status = "发放中"
+    else:
+        status = "错误状态"
+
+    return status
+    
+
 
 # def db_close(db):
     # if db is not None:

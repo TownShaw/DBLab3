@@ -22,7 +22,6 @@ app.secret_key = 'lab3'
 # connection = None
 databasename = "BankSystem"
 engine = create_engine('mysql+pymysql://root:200219xiaotong@localhost:3306/{}'.format(databasename), echo=True, pool_recycle=3600)
-connection = engine.connect()
 
 # 对app执行请求页面地址到函数的绑定
 @app.route("/", methods=(["GET"]))    # 主页, 不需要附加任何操作
@@ -63,9 +62,10 @@ def login():
 def clients():
     tablename = "Clients"
     columns = table_getcolumns(engine, tablename)
-    table = db_gettable(engine, tablename)
-    stmt = table.select()
-    rows = connection.execute(stmt).fetchall()
+    # table = db_gettable(engine, tablename)
+    # stmt = table.select()
+    # rows = connection.execute(stmt).fetchall()
+    rows = table_search(engine, tablename, None)
 
     if request.method == 'POST':
         if "Back" in request.form:
@@ -91,6 +91,8 @@ def clients():
             return redirect(url_for("update_client"))
         elif "insert" in request.form:
             return redirect(url_for("insert_client"))
+        elif "delete" in request.form:
+            pass    #TODO
         elif "clear" in request.form:
             return render_template("clients.html", columns=columns, rows='')
         else:
@@ -105,9 +107,10 @@ def update_client():
     columns = table_getcolumns(engine, tablename)
     update_columns = columns[:]
     update_columns.remove("Client_ID")
-    table = db_gettable(engine, tablename)
-    stmt = table.select().where(table.c['Client_ID'] == client_id)
-    rows = connection.execute(stmt).fetchall()
+    # table = db_gettable(engine, tablename)
+    # stmt = table.select().where(table.c['Client_ID'] == client_id)
+    # rows = connection.execute(stmt).fetchall()
+    rows = table_search(engine, tablename, {"Client_ID": account_id})
 
     if request.method == 'POST':
         if "update" in request.form:
@@ -143,6 +146,224 @@ def insert_client():
             return render_template("insert.html", tablename=tablename, columns=columns)
     else:
         return render_template("insert.html", tablename=tablename, columns=columns)
+
+@app.route("/accounts/<account_type>", methods=["GET", "POST"])
+def accounts(account_type):
+    tablename = account_type
+    columns = table_getcolumns(engine, tablename)
+    # table = db_gettable(engine, tablename)
+    # stmt = table.select()
+    # rows = connection.execute(stmt).fetchall()
+    rows = table_search(engine, tablename, None)
+
+    if request.method == 'POST':
+        if "Back" in request.form:
+            return render_template("home.html")
+        elif "search" in request.form:
+            search_dict = dict()
+            for key, value in request.form.items():
+                if key == "select_type":
+                    search_dict[value] = value
+                elif key == "searchConf":
+                    search_dict[next(iter(search_dict))] = value
+            rows = table_search(engine, tablename, search_dict)
+            return render_template("accounts.html", columns=columns, rows=rows)
+        elif "update" in request.form:
+            keys, values = request.form['update'].split("&&")
+            keys = keys.split("||")
+            values = values.split("||")
+            idx = 0
+            global account_id
+            for idx in range(len(keys)):
+                if keys[idx] == account_type + '_ID':
+                    account_id = values[idx]
+            return redirect(url_for("update_accounts", account_type=account_type))
+        elif "insert" in request.form:
+            return redirect(url_for("insert_accounts", account_type=account_type))
+        elif "delete" in request.form:
+            pass    #TODO
+        elif "clear" in request.form:
+            return render_template("accounts.html", columns=columns, rows='')
+        else:
+            rows = table_search(engine, tablename, None)
+            return render_template("accounts.html", columns=columns, rows=rows)
+    else:
+        return render_template("accounts.html", columns=columns, rows=rows)
+
+@app.route("/accounts/<account_type>/update", methods=["GET", "POST"])
+def update_accounts(account_type):
+    tablename = account_type
+    columns = table_getcolumns(engine, tablename)
+    update_columns = columns[:]
+    update_columns.remove(account_type + "_ID")
+    # table = db_gettable(engine, tablename)
+    # stmt = table.select().where(table.c[account_type + "_ID"] == account_id)
+    # rows = connection.execute(stmt).fetchall()
+    rows = table_search(engine, tablename, {account_type + "_ID": account_id})
+
+    if request.method == 'POST':
+        if "update" in request.form:
+            update_dict = dict()
+            for key, value in request.form.items():
+                if key != "update" and key != account_type + "_ID" and value != '':
+                    update_dict[key] = value
+            rows = table_update(engine, tablename, {account_type + "_ID": account_id}, update_dict)
+            return render_template("update.html", tablename=tablename, rows=rows, columns=columns, update_columns=update_columns)
+        elif "Back" in request.form:
+            return redirect(url_for("accounts", account_type=account_type))
+        else:
+            return render_template("update.html", tablename=tablename, rows=rows, columns=columns, update_columns=update_columns)
+    else:
+        return render_template("update.html", tablename=tablename, rows=rows, columns=columns, update_columns=update_columns)
+
+@app.route("/accounts/<account_type>/insert", methods=["GET", "POST"])
+def insert_accounts(account_type):
+    tablename = account_type
+    columns = table_getcolumns(engine, tablename)
+
+    if request.method == 'POST':
+        if "insert" in request.form:
+            insert_dict = dict()
+            for key, value in request.form.items():
+                if key != "insert":
+                    insert_dict[key] = value
+            table_insert(engine, tablename, insert_dict)
+            return render_template("insert.html", tablename=tablename, columns=columns)
+        elif "Back" in request.form:
+            return redirect(url_for("accounts", account_type=account_type))
+        else:
+            return render_template("insert.html", tablename=tablename, columns=columns)
+    else:
+        return render_template("insert.html", tablename=tablename, columns=columns)
+
+@app.route("/loans", methods=["GET", "POST"])
+def loans():
+    tablename = "Loans"
+    columns = table_getcolumns(engine, tablename)
+    # table = db_gettable(engine, tablename)
+    # stmt = table.select()
+    # rows = connection.execute(stmt).fetchall()
+    rows = table_search(engine, tablename, None)
+    rows_with_status = list()
+    for row in rows:
+        rows_with_status.append([])
+        for item in row:
+            rows_with_status[-1].append(item)
+        loan_id = row[0]
+        installment = row[-1]
+        status = get_loan_status(engine, loan_id, installment)
+        rows_with_status[-1].append(status)
+        
+
+
+    if request.method == 'POST':
+        if "Back" in request.form:
+            return render_template("home.html")
+        elif "search" in request.form:
+            search_dict = dict()
+            for key, value in request.form.items():
+                if key == "select_type":
+                    search_dict[value] = value
+                elif key == "searchConf":
+                    search_dict[next(iter(search_dict))] = value
+            rows = table_search(engine, tablename, search_dict)
+            return render_template("loans.html", columns=columns, rows=rows_with_status)
+        elif "view" in request.form:
+            keys, values = request.form['view'].split("&&")
+            keys = keys.split("||")
+            values = values.split("||")
+            for idx in range(len(keys)):
+                if keys[idx] == "Loan_ID":
+                    loan_id = values[idx]
+            return redirect(url_for("partial_payments", loan_id=loan_id))
+        elif "insert" in request.form:
+            return redirect(url_for("insert_loans"))
+        elif "delete" in request.form:
+            pass    #TODO
+        elif "clear" in request.form:
+            return render_template("loans.html", columns=columns, rows='')
+        else:
+            rows = table_search(engine, tablename, None)
+            return render_template("loans.html", columns=columns, rows=rows_with_status)
+    else:
+        return render_template("loans.html", columns=columns, rows=rows_with_status)
+
+@app.route("/loans/insert", methods=["GET", "POST"])
+def insert_loans():
+    tablename = "Loans"
+    columns = table_getcolumns(engine, tablename)
+
+    if request.method == 'POST':
+        if "insert" in request.form:
+            insert_dict = dict()
+            for key, value in request.form.items():
+                if key != "insert":
+                    insert_dict[key] = value
+            table_insert(engine, tablename, insert_dict)
+            return render_template("insert.html", tablename=tablename, columns=columns)
+        elif "Back" in request.form:
+            return redirect(url_for("loans"))
+        else:
+            return render_template("insert.html", tablename=tablename, columns=columns)
+    else:
+        return render_template("insert.html", tablename=tablename, columns=columns)
+
+@app.route("/loans/<loan_id>/partial_payments", methods=["GET", "POST"])
+def partial_payments(loan_id):
+    tablename = "Partial_Payment"
+    columns = table_getcolumns(engine, tablename)
+    rows = table_search(engine, tablename, {"Loan_ID": loan_id})
+
+    if request.method == 'POST':
+        if "Back" in request.form:
+            return redirect(url_for("loans"))
+        elif "search" in request.form:
+            search_dict = dict()
+            for key, value in request.form.items():
+                if key == "select_type":
+                    search_dict[value] = value
+                elif key == "searchConf":
+                    search_dict[next(iter(search_dict))] = value
+            rows = table_search(engine, tablename, search_dict)
+            return render_template("loans.html", columns=columns, rows=rows)
+        elif "insert" in request.form:
+            return redirect(url_for("insert_payments", loan_id=loan_id))
+        elif "delete" in request.form:
+            pass    #TODO
+        elif "clear" in request.form:
+            return render_template("partial_payments.html", loan_id=loan_id, columns=columns, rows='')
+        else:
+            rows = table_search(engine, tablename, {"Loan_ID": loan_id})
+            return render_template("partial_payments.html", loan_id=loan_id, columns=columns, rows=rows)
+    else:
+        return render_template("partial_payments.html", loan_id=loan_id, columns=columns, rows=rows)
+
+@app.route("/loans/<loan_id>/partial_payments/insert", methods=["GET", "POST"])
+def insert_payments(loan_id):
+    tablename = "Partial_Payment"
+    columns = table_getcolumns(engine, tablename)
+    insert_columns = columns[:]
+    insert_columns.remove("Loan_ID")
+
+
+    if request.method == 'POST':
+        if "insert" in request.form:
+            insert_dict = dict()
+            for key, value in request.form.items():
+                if key != "insert":
+                    insert_dict[key] = value
+            insert_dict["Loan_ID"] = loan_id
+            table_insert(engine, tablename, insert_dict)
+            return render_template("insert.html", tablename=tablename, columns=insert_columns)
+        elif "Back" in request.form:
+            return redirect(url_for("partial_payments", loan_id=loan_id))
+        else:
+            return render_template("insert.html", tablename=tablename, columns=insert_columns)
+    else:
+        return render_template("insert.html", tablename=tablename, columns=insert_columns)
+
+
+
 
 @app.route("/database", methods=(["GET", "POST"]))
 def database():
@@ -195,7 +416,7 @@ def update(tablename):
             for key, value in request.form.items():
                 if key != "update" and value != '':
                     update_dict[key] = value
-            columns, rows = table_update(engine, connection, table, update_dict=update_dict)
+            columns, rows = table_update(engine, tablename, update_dict=update_dict)
             return render_template("update.html", columns = columns, rows = rows, tablename = table)
         elif "Back" in request.form:
             return redirect(url_for("lines"))
@@ -219,7 +440,7 @@ def insert(tablename):
             return render_template("insert.html", tablename=tablename, columns=columns)
         elif "Back" in request.form:
             tablenames = engine.table_names()
-            return render_template("database.html", tablenames=tablenames, databasename=databasename)
+            return redirect(url_for("database"))
         else:
             return render_template("insert.html", tablename=tablename, columns=columns)
     else:
